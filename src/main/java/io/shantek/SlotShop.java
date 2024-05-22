@@ -142,6 +142,7 @@ public class SlotShop extends JavaPlugin implements Listener, TabCompleter {
         }
     }
 
+
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("slotshop")) {
             if (args.length == 0 || args.length == 1 && args[0].isEmpty()) {
