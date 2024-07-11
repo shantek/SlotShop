@@ -9,10 +9,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -52,19 +54,29 @@ public class PlayerInteractListener implements Listener {
                 boolean isOwnerOrCoOwner = isOwnerOrCoOwner(player, ownerName, signLocation);
 
                 if (isOwnerOrCoOwner) {
-                    // Allow owners and co-owners to open the barrel without purchasing
-                    player.sendMessage(ChatColor.GREEN + "[SlotShop] You are the owner/co-owner of this shop. You can manage the shop items.");
-                    return;
+                    if (Functions.isStickEquipped(player)) {
+                        // Show shop info if holding a stick
+                        sendShopInfo(player, ownerName, barrelCustomName, signLocation);
+                        event.setCancelled(true);
+                    } else {
+                        // Allow opening the barrel without prompts if not holding a stick
+                        return;
+                    }
                 } else {
-                    // Proceed with the purchase process for other players
-                    handlePurchaseProcess(player, barrel, sign, ownerName, signLocation, event);
+                    // Provide shop info for non-owners
+                    sendShopInfo(player, ownerName, barrelCustomName, signLocation);
+                    event.setCancelled(true);
                 }
             }
         }
     }
 
     private void handleSignClick(Player player, Block clickedBlock, PlayerInteractEvent event) {
-        Block attachedBlock = clickedBlock.getRelative(Functions.getAttachedFace(clickedBlock));
+        BlockFace face = Functions.getAttachedFace(clickedBlock);
+        if (face == null) {
+            return;
+        }
+        Block attachedBlock = clickedBlock.getRelative(face);
         if (attachedBlock.getState() instanceof Barrel) {
             Barrel barrel = (Barrel) attachedBlock.getState();
             String barrelCustomName = barrel.getCustomName();
@@ -76,11 +88,30 @@ public class PlayerInteractListener implements Listener {
                 boolean isOwnerOrCoOwner = isOwnerOrCoOwner(player, ownerName, signLocation);
 
                 if (isOwnerOrCoOwner) {
-                    // Allow owners and co-owners to open the barrel without purchasing
-                    player.sendMessage(ChatColor.GREEN + "[SlotShop] You are the owner/co-owner of this shop. You can manage the shop items.");
-                    return;
+                    if (isOwner(player, ownerName)) {
+                        // Allow owners to edit or destroy the sign
+                        if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+                            // Allow sign destruction
+                            return;
+                        } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                            player.sendMessage(ChatColor.RED + "Break the sign to recreate the shop");
+                            event.setCancelled(true);
+                        }
+                    } else {
+                        player.sendMessage(ChatColor.RED + "Only the shop owner can edit the sign.");
+                        event.setCancelled(true);
+                    }
+                } else if (player.isOp()) {
+                    // Allow ops to destroy the sign
+                    if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+                        return;
+                    } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                        player.sendMessage(ChatColor.RED + "Break the sign to recreate the shop");
+                        event.setCancelled(true);
+                    }
                 } else {
-                    // Proceed with the purchase process for other players
+                    // Prevent non-owners from editing the sign, proceed with the purchase process
+                    event.setCancelled(true);
                     handlePurchaseProcess(player, barrel, sign, ownerName, signLocation, event);
                 }
             }
@@ -99,6 +130,10 @@ public class PlayerInteractListener implements Listener {
             }
         }
         return playerName.equals(ownerName) || (hasCoowner && playerName.equals(shopCoowner));
+    }
+
+    private boolean isOwner(Player player, String ownerName) {
+        return player.getName().equals(ownerName);
     }
 
     private void handlePurchaseProcess(Player player, Barrel barrel, Sign sign, String ownerName, Location signLocation, PlayerInteractEvent event) {
@@ -126,10 +161,7 @@ public class PlayerInteractListener implements Listener {
             }
         }
 
-        if (playerHasPermission(player, ownerName, hasCoowner, shopCoowner)) {
-            event.setCancelled(true);
-            sendShopInfo(player, ownerName, barrel.getCustomName(), shopCoowner, itemDescription, cost);
-        } else if (!Functions.canAfford(player, cost)) {
+        if (!Functions.canAfford(player, cost)) {
             player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have enough money!");
         } else if (!Functions.hasInventorySpace(player)) {
             player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have enough inventory space!");
@@ -148,37 +180,32 @@ public class PlayerInteractListener implements Listener {
         }
     }
 
-    private boolean playerHasPermission(Player player, String ownerName, boolean hasCoowner, String shopCoowner) {
-        boolean printInfo = false;
-        if (ownerName.equals(player.getName())) {
-            if (!Functions.isStickEquipped(player)) {
-                return false;
-            }
-            printInfo = true;
-        } else {
-            if (player.isOp() && Functions.isStickEquipped(player)) {
-                printInfo = true;
-                return false;
-            }
-            if (hasCoowner && player.getName().equals(shopCoowner)) {
-                if (!Functions.isStickEquipped(player)) {
-                    return false;
-                }
-                printInfo = true;
-            } else {
-                printInfo = true;
+    private void sendShopInfo(Player player, String ownerName, String barrelCustomName, Location signLocation) {
+        boolean hasCoowner = false;
+        String shopCoowner = null;
+        if (Functions.getShopDataMap().containsKey(signLocation)) {
+            Functions.ShopData shopData = Functions.getShopDataMap().get(signLocation);
+            if (shopData != null) {
+                shopCoowner = shopData.getCoOwner();
+                hasCoowner = true;
             }
         }
-        return printInfo;
-    }
 
-    private void sendShopInfo(Player player, String ownerName, String barrelCustomName, String shopCoowner, String itemDescription, double cost) {
         player.sendMessage(ChatColor.GREEN + "[SlotShop] Info about this Slot Shop:");
         player.sendMessage(ChatColor.YELLOW + "Shop Owner: " + ChatColor.WHITE + ownerName);
         player.sendMessage(ChatColor.YELLOW + "Shop Type: " + ChatColor.WHITE + barrelCustomName);
-        player.sendMessage(ChatColor.YELLOW + "Shop Co-owner: " + ChatColor.WHITE + (shopCoowner != null && !shopCoowner.isEmpty() ? shopCoowner : "No co-owner set"));
-        player.sendMessage(ChatColor.YELLOW + "Item Description: " + ChatColor.WHITE + itemDescription);
-        player.sendMessage(ChatColor.YELLOW + "Slot Price: " + ChatColor.WHITE + cost);
+        player.sendMessage(ChatColor.YELLOW + "Shop Co-owner: " + ChatColor.WHITE + (hasCoowner && shopCoowner != null ? shopCoowner : "No co-owner set"));
+        // Additional shop info can be sent here
+    }
+
+    private void revertSignToEditableState(Sign sign) {
+        // Clear line 1 and line 4
+        sign.setLine(0, "");
+        sign.setLine(3, "");
+        // Remove "Cost: " from line 3
+        String costLine = sign.getLine(2).replace(ChatColor.GREEN + "Cost: ", "");
+        sign.setLine(2, costLine);
+        sign.update();
     }
 
     private void processPurchase(Player player, Barrel barrel, Sign sign, String ownerName, String shopCoowner, double cost) {

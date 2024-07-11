@@ -49,21 +49,20 @@ public class SlotShop extends JavaPlugin {
             PurchaseHistory.savePurchaseHistory(this);
             ConfigData.saveShopData(this);
         }));
+
+        // Load shop data
         ConfigData.loadShopData(this);
     }
 
     private boolean setupEconomy() {
         if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            getLogger().severe("Vault plugin not found!");
             return false;
         }
         RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
         if (rsp == null) {
-            getLogger().severe("Economy provider not found!");
             return false;
         }
         econ = rsp.getProvider();
-        getLogger().info("Vault hooked successfully!");
         return econ != null;
     }
 
