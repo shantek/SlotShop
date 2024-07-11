@@ -1,17 +1,13 @@
 package io.shantek.helpers;
 
 import io.shantek.SlotShop;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Material;
-
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;

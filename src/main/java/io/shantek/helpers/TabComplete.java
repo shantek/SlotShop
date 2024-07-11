@@ -1,4 +1,4 @@
-package io.shantek.tabcomplete;
+package io.shantek.helpers;
 
 import io.shantek.SlotShop;
 import org.bukkit.command.Command;
@@ -7,7 +7,6 @@ import org.bukkit.command.TabCompleter;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 public class TabComplete implements TabCompleter {

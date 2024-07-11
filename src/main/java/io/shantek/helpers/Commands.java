@@ -1,18 +1,12 @@
-package io.shantek.commands;
+package io.shantek.helpers;
 
 import io.shantek.SlotShop;
-import io.shantek.helpers.ConfigData;
-import io.shantek.helpers.Functions;
-import io.shantek.helpers.PurchaseHistory;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
