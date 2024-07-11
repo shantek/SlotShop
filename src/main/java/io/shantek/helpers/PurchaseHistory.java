@@ -5,66 +5,73 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PurchaseHistory {
+    private static final Map<UUID, List<Purchase>> purchaseHistory = new ConcurrentHashMap<>();
 
-    public SlotShop slotShop;
-
-    public PurchaseHistory(SlotShop slotShop) {
-        this.slotShop = slotShop;
+    public static Map<UUID, List<Purchase>> getPurchaseHistory() {
+        return purchaseHistory;
     }
 
-    private void addPurchaseToHistory(String buyerName, String sellerName, String coOwnerName, double cost, ItemStack item) {
-        OfflinePlayer offlineSeller = Bukkit.getOfflinePlayer(sellerName);
-        UUID sellerUUID = offlineSeller.getUniqueId();
-        List<SlotShop.Purchase> sellerPurchases = (List)this.purchaseHistory.computeIfAbsent(sellerUUID, (k) -> {
-            return new ArrayList();
-        });
-        long currentTime = System.currentTimeMillis();
-        SlotShop.Purchase sellerPurchase = new SlotShop.Purchase(buyerName, sellerName, cost, item, currentTime);
-        sellerPurchases.add(sellerPurchase);
-        if (coOwnerName != null && !coOwnerName.isEmpty()) {
-            OfflinePlayer offlineCoOwner = Bukkit.getOfflinePlayer(coOwnerName);
-            UUID coOwnerUUID = offlineCoOwner.getUniqueId();
-            List<SlotShop.Purchase> coOwnerPurchases = (List)this.purchaseHistory.computeIfAbsent(coOwnerUUID, (k) -> {
-                return new ArrayList();
-            });
-            SlotShop.Purchase coOwnerPurchase = new SlotShop.Purchase(buyerName, coOwnerName, cost, item, currentTime);
-            coOwnerPurchases.add(coOwnerPurchase);
+    public static void loadPurchaseHistory(SlotShop plugin) {
+        File dataFolder = plugin.getDataFolder();
+        File purchaseFile = new File(dataFolder, "purchase_history.yml");
+        if (!purchaseFile.exists()) {
+            plugin.getLogger().info("[SlotShop] No purchase history found.");
+        } else {
+            YamlConfiguration dataConfig = YamlConfiguration.loadConfiguration(purchaseFile);
+            ConfigurationSection purchasesSection = dataConfig.getConfigurationSection("purchases");
+            if (purchasesSection == null) {
+                plugin.getLogger().info("[SlotShop] No purchase history found.");
+            } else {
+                for (String playerUUID : purchasesSection.getKeys(false)) {
+                    try {
+                        UUID uuid = UUID.fromString(playerUUID);
+                        List<Map<?, ?>> serializedPurchases = dataConfig.getMapList("purchases." + playerUUID);
+                        List<Purchase> playerPurchases = new ArrayList<>();
+                        for (Map<?, ?> serializedPurchase : serializedPurchases) {
+                            String buyer = (String) serializedPurchase.get("buyer");
+                            String seller = (String) serializedPurchase.get("seller");
+                            String item = (String) serializedPurchase.get("item");
+                            double cost = (Double) serializedPurchase.get("cost");
+                            long timestamp = (Long) serializedPurchase.get("timestamp");
+                            playerPurchases.add(new Purchase(buyer, seller, cost, new ItemStack(Material.valueOf(item)), timestamp));
+                        }
+                        purchaseHistory.put(uuid, playerPurchases);
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Invalid UUID string: " + playerUUID);
+                    }
+                }
+                plugin.getLogger().info("Purchase history loaded successfully.");
+            }
         }
-
-        this.savePurchaseHistory();
-        this.getLogger().info("Purchase saved - Buyer: " + buyerName + ", Seller: " + sellerName + ", Co-Owner: " + coOwnerName + ", Cost: " + cost + ", Item: " + item.getType().toString());
     }
 
-    private void savePurchaseHistory() {
-        File dataFolder = this.getDataFolder();
+    public static void savePurchaseHistory(SlotShop plugin) {
+        File dataFolder = plugin.getDataFolder();
         if (!dataFolder.exists()) {
             dataFolder.mkdirs();
         }
 
         File purchaseFile = new File(dataFolder, "purchase_history.yml");
         YamlConfiguration dataConfig = new YamlConfiguration();
-        Iterator var4 = this.purchaseHistory.entrySet().iterator();
-
-        while(var4.hasNext()) {
-            Map.Entry<UUID, List<SlotShop.Purchase>> entry = (Map.Entry)var4.next();
-            String playerUUID = ((UUID)entry.getKey()).toString();
-            List<SlotShop.Purchase> playerPurchases = (List)entry.getValue();
-            List<Map<String, Object>> serializedPurchases = new ArrayList();
-            Iterator var9 = playerPurchases.iterator();
-
-            while(var9.hasNext()) {
-                SlotShop.Purchase purchase = (SlotShop.Purchase)var9.next();
-                Map<String, Object> serializedPurchase = new HashMap();
+        for (Map.Entry<UUID, List<Purchase>> entry : purchaseHistory.entrySet()) {
+            String playerUUID = entry.getKey().toString();
+            List<Map<String, Object>> serializedPurchases = new ArrayList<>();
+            for (Purchase purchase : entry.getValue()) {
+                Map<String, Object> serializedPurchase = new HashMap<>();
                 serializedPurchase.put("timestamp", purchase.getTime());
                 serializedPurchase.put("buyer", purchase.getBuyer());
                 serializedPurchase.put("seller", purchase.getSeller());
@@ -72,95 +79,47 @@ public class PurchaseHistory {
                 serializedPurchase.put("cost", purchase.getCost());
                 serializedPurchases.add(serializedPurchase);
             }
-
             dataConfig.set("purchases." + playerUUID, serializedPurchases);
         }
 
         try {
             dataConfig.save(purchaseFile);
-            this.getLogger().info("Purchase history saved successfully.");
-        } catch (IOException var12) {
-            IOException e = var12;
-            this.getLogger().severe("Failed to save purchase history: " + e.getMessage());
+            plugin.getLogger().info("Purchase history saved successfully.");
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save purchase history: " + e.getMessage());
         }
-
     }
 
-    private void savePurchaseHistoryToFile() {
-        File dataFolder = this.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
-        }
-
-        File purchaseFile = new File(dataFolder, "purchase_history.yml");
-        YamlConfiguration dataConfig = new YamlConfiguration();
-        Iterator var4 = this.purchaseHistory.entrySet().iterator();
-
-        while(var4.hasNext()) {
-            Map.Entry<UUID, List<SlotShop.Purchase>> entry = (Map.Entry)var4.next();
-            String playerUUID = ((UUID)entry.getKey()).toString();
-            List<SlotShop.Purchase> playerPurchases = (List)entry.getValue();
-            List<Map<String, Object>> serializedPurchases = new ArrayList();
-            Iterator var9 = playerPurchases.iterator();
-
-            while(var9.hasNext()) {
-                SlotShop.Purchase purchase = (SlotShop.Purchase)var9.next();
-                Map<String, Object> serializedPurchase = new HashMap();
-                serializedPurchase.put("buyer", purchase.getBuyer());
-                serializedPurchase.put("seller", purchase.getSeller());
-                serializedPurchase.put("item", purchase.getItemName());
-                serializedPurchase.put("cost", purchase.getCost());
-                serializedPurchases.add(serializedPurchase);
-            }
-
-            dataConfig.set("purchases." + playerUUID, serializedPurchases);
-        }
-
-        try {
-            dataConfig.save(purchaseFile);
-            this.getLogger().info("Purchase history saved successfully.");
-        } catch (IOException var12) {
-            IOException e = var12;
-            this.getLogger().severe("Failed to save purchase history: " + e.getMessage());
-        }
-
-    }
-
-    private void displayPurchaseHistory(CommandSender sender, String[] args) {
+    public static void displayPurchaseHistory(CommandSender sender, String[] args, SlotShop plugin) {
         if (!(sender instanceof Player)) {
             sender.sendMessage(ChatColor.RED + "This command can only be executed by a player.");
         } else {
-            Player player = (Player)sender;
+            Player player = (Player) sender;
             UUID playerUUID = player.getUniqueId();
-            List<SlotShop.Purchase> playerPurchases = (List)this.purchaseHistory.get(playerUUID);
+            List<Purchase> playerPurchases = purchaseHistory.get(playerUUID);
             if (playerPurchases != null && !playerPurchases.isEmpty()) {
                 int page = 1;
                 if (args.length > 1) {
                     try {
                         page = Integer.parseInt(args[1]);
-                    } catch (NumberFormatException var38) {
+                    } catch (NumberFormatException e) {
                         sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.RED + " Please enter a valid page number");
                         return;
                     }
                 }
 
                 int totalPurchases = playerPurchases.size();
-                int totalPages = (int)Math.ceil((double)totalPurchases / 10.0);
+                int totalPages = (int) Math.ceil((double) totalPurchases / 10.0);
                 if (page >= 1 && page <= totalPages) {
-                    if (totalPages == 1) {
-                        sender.sendMessage("\n" + ChatColor.GREEN + "[SlotShop] " + ChatColor.YELLOW + String.format("%d Slot Shop transactions found (1 page):", totalPurchases) + "\n");
-                    } else {
-                        sender.sendMessage("\n" + ChatColor.GREEN + "[SlotShop] " + ChatColor.YELLOW + String.format("%d Slot Shop transactions found (%d pages):", totalPurchases, totalPages) + "\n");
-                    }
+                    sender.sendMessage("\n" + ChatColor.GREEN + "[SlotShop] " + ChatColor.YELLOW + String.format("%d Slot Shop transactions found (%d pages):", totalPurchases, totalPages) + "\n");
 
                     int startIndex = (page - 1) * 10;
                     int endIndex = Math.min(startIndex + 10, totalPurchases);
                     SimpleDateFormat dateFormat = new SimpleDateFormat("MMM d, yyyy HH:mm:ss");
                     dateFormat.setTimeZone(TimeZone.getDefault());
 
-                    int nextPage;
-                    for(nextPage = endIndex - 1; nextPage >= startIndex; --nextPage) {
-                        SlotShop.Purchase purchase = (SlotShop.Purchase)playerPurchases.get(nextPage);
+                    for (int i = endIndex - 1; i >= startIndex; --i) {
+                        Purchase purchase = playerPurchases.get(i);
                         long currentTimeMillis = System.currentTimeMillis();
                         long purchaseTimeMillis = purchase.getTime();
                         long timeDifferenceMillis = currentTimeMillis - purchaseTimeMillis;
@@ -168,46 +127,18 @@ public class PurchaseHistory {
                         long minutes = seconds / 60L;
                         long hours = minutes / 60L;
                         long days = hours / 24L;
-                        String timestamp;
-                        if (days > 0L) {
-                            timestamp = days + "d ago";
-                        } else if (hours > 0L) {
-                            timestamp = hours + "h ago";
-                        } else if (minutes > 0L) {
-                            timestamp = minutes + "m ago";
-                        } else {
-                            timestamp = seconds + "s ago";
-                        }
-
+                        String timestamp = days > 0 ? days + "d ago" : (hours > 0 ? hours + "h ago" : (minutes > 0 ? minutes + "m ago" : seconds + "s ago"));
                         String itemName = purchase.getItemName();
-                        String[] words = itemName.split("_");
-                        StringBuilder formattedItemName = new StringBuilder();
-                        String[] var32 = words;
-                        int var33 = words.length;
-
-                        for(int var34 = 0; var34 < var33; ++var34) {
-                            String word = var32[var34];
-                            if (word.length() > 0) {
-                                String firstLetter = word.substring(0, 1).toUpperCase();
-                                String restOfWord = word.substring(1).toLowerCase();
-                                formattedItemName.append(firstLetter).append(restOfWord).append(" ");
-                            }
-                        }
-
-                        String formattedName = formattedItemName.toString().trim();
+                        String formattedName = Arrays.stream(itemName.split("_")).map(word -> word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase()).reduce("", (a, b) -> a + " " + b).trim();
                         String message = timestamp + ": " + ChatColor.GREEN + purchase.getBuyer() + ChatColor.WHITE + " purchased " + ChatColor.YELLOW + formattedName + ChatColor.WHITE + " for " + ChatColor.YELLOW + purchase.getCost();
                         sender.sendMessage(message);
                     }
 
-                    nextPage = page + 1;
-                    if (nextPage <= totalPages) {
-                        String nextPageCommand = String.format("/slotshop history %d", nextPage);
-                        String nextPageMessage = ChatColor.GREEN + "Use " + ChatColor.YELLOW + nextPageCommand + ChatColor.GREEN + " to see the next page.";
-                        sender.sendMessage(nextPageMessage);
+                    if (page < totalPages) {
+                        sender.sendMessage(ChatColor.GREEN + "Use " + ChatColor.YELLOW + "/slotshop history " + (page + 1) + ChatColor.GREEN + " to see the next page.");
                     } else {
                         sender.sendMessage(ChatColor.YELLOW + "End of records.");
                     }
-
                     sender.sendMessage(ChatColor.GREEN + "To clear history, use " + ChatColor.YELLOW + "/slotshop clear");
                 } else {
                     sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.RED + " Please enter a valid page number between 1-" + totalPages);
@@ -218,4 +149,55 @@ public class PurchaseHistory {
         }
     }
 
+    public static void clearPurchaseHistory(CommandSender sender, SlotShop plugin) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.RED + " This command can only be executed by a player.");
+        } else {
+            Player player = (Player) sender;
+            UUID playerUUID = player.getUniqueId();
+            if (!purchaseHistory.containsKey(playerUUID)) {
+                sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.YELLOW + " No purchase history found.");
+            } else {
+                purchaseHistory.remove(playerUUID);
+                savePurchaseHistory(plugin);
+                sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.YELLOW + " Sales history cleared.");
+            }
+        }
+    }
+
+    public static class Purchase {
+        private final String buyer;
+        private final String seller;
+        private final double cost;
+        private final String itemName;
+        private final long time;
+
+        public Purchase(String buyer, String seller, double cost, ItemStack item, long time) {
+            this.buyer = buyer;
+            this.seller = seller;
+            this.cost = cost;
+            this.itemName = item.getType().toString();
+            this.time = time;
+        }
+
+        public String getBuyer() {
+            return buyer;
+        }
+
+        public String getSeller() {
+            return seller;
+        }
+
+        public double getCost() {
+            return cost;
+        }
+
+        public String getItemName() {
+            return itemName;
+        }
+
+        public long getTime() {
+            return time;
+        }
+    }
 }

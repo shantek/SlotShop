@@ -1,133 +1,77 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package io.shantek;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
+import io.shantek.commands.Commands;
+import io.shantek.helpers.ConfigData;
 import io.shantek.helpers.PurchaseHistory;
+import io.shantek.listeners.InventoryCloseListener;
+import io.shantek.listeners.PlayerInteractListener;
+import io.shantek.listeners.PlayerJoinListener;
+import io.shantek.listeners.SignChangeListener;
+import io.shantek.tabcomplete.TabComplete;
 import net.milkbowl.vault.economy.Economy;
-import org.bukkit.Location;
-import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.event.Listener;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class SlotShop extends JavaPlugin implements Listener, TabCompleter {
-
-    public PurchaseHistory purchaseHistory;
-
+public class SlotShop extends JavaPlugin {
+    private static SlotShop instance;
     private static final int PAGE_SIZE = 10;
-    private Economy econ = null;
-    private String customBarrelName = "SlotShop";
-    private String gambleBarrelName = "GambleShop";
     private static long COOLDOWN_TIME_SECONDS = 86400L;
-    private final Map<UUID, Long> purchaseCooldowns = new HashMap();
-    private Map<UUID, Long> purchaseCooldownSlotShop = new HashMap();
-    private static final long COOLDOWN_DURATION = 250L;
-    private final Map<UUID, List<Purchase>> transactionHistory = new ConcurrentHashMap();
-    public Map<Location, ShopData> shopDataMap = new HashMap();
-    private FileConfiguration dataConfig;
-    private File dataFile;
+    public Economy econ = null;
 
-
-
-    public SlotShop() {
+    public static SlotShop getInstance() {
+        return instance;
     }
 
+    @Override
     public void onEnable() {
-        if (!this.setupEconomy()) {
-            this.getLogger().severe("Disabled due to no Vault dependency found!");
-            this.getServer().getPluginManager().disablePlugin(this);
-        } else {
-            config.loadConfiguration();
-            this.loadPurchaseHistory();
-            this.getServer().getPluginManager().registerEvents(this, this);
-            this.getCommand("slotshop").setExecutor(this);
-            this.getCommand("slotshop").setTabCompleter(this);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                purchaseHistory.savePurchaseHistory();
-                purchaseHistory.saveShopData();
-            }));
-            this.loadShopData();
+        instance = this;
+
+        // Check if Vault is available
+        if (!setupEconomy()) {
+            getLogger().severe("Disabled due to no Vault dependency found!");
+            getServer().getPluginManager().disablePlugin(this);
+            return; // Ensure the method exits here
         }
+
+        // Load configurations and initialize the plugin
+        ConfigData.loadConfiguration(this);
+        COOLDOWN_TIME_SECONDS = ConfigData.getCooldownDuration();
+        PurchaseHistory.loadPurchaseHistory(this);
+        getServer().getPluginManager().registerEvents(new InventoryCloseListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerInteractListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+        getServer().getPluginManager().registerEvents(new SignChangeListener(this), this);
+        getCommand("slotshop").setExecutor(new Commands(this));
+        getCommand("slotshop").setTabCompleter(new TabComplete(this));
+
+        // Save data on shutdown
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            PurchaseHistory.savePurchaseHistory(this);
+            ConfigData.saveShopData(this);
+        }));
+        ConfigData.loadShopData(this);
     }
 
-    public class ShopData {
-        private String coOwner;
-
-        public ShopData(String coOwner) {
-            this.coOwner = coOwner;
+    private boolean setupEconomy() {
+        if (getServer().getPluginManager().getPlugin("Vault") == null) {
+            getLogger().severe("Vault plugin not found!");
+            return false;
         }
-
-        public String getCoOwner() {
-            return this.coOwner;
+        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            getLogger().severe("Economy provider not found!");
+            return false;
         }
-
-        public void setCoOwner(String coOwner) {
-            this.coOwner = coOwner;
-        }
+        econ = rsp.getProvider();
+        getLogger().info("Vault hooked successfully!");
+        return econ != null;
     }
 
-    public class Purchase {
-        private final String buyer;
-        private final String seller;
-        private final double cost;
-        private final String itemName;
-        private final long time;
-
-        public Purchase(String buyer, String seller, double cost, ItemStack item, long time) {
-            this.buyer = buyer;
-            this.seller = seller;
-            this.cost = cost;
-            this.itemName = item.getType().toString();
-            this.time = time;
-        }
-
-        public String getBuyer() {
-            return this.buyer;
-        }
-
-        public String getSeller() {
-            return this.seller;
-        }
-
-        public double getCost() {
-            return this.cost;
-        }
-
-        public String getItemName() {
-            return this.itemName;
-        }
-
-        public long getTime() {
-            return this.time;
-        }
+    public static int getPageSize() {
+        return PAGE_SIZE;
     }
 
-    private class ChosenItem {
-        private final int slot;
-        private final ItemStack item;
-
-        public ChosenItem(int slot, ItemStack item) {
-            this.slot = slot;
-            this.item = item;
-        }
-
-        public int getSlot() {
-            return this.slot;
-        }
-
-        public ItemStack getItem() {
-            return this.item;
-        }
+    public static long getCooldownTimeSeconds() {
+        return COOLDOWN_TIME_SECONDS;
     }
 }

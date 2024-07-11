@@ -1,227 +1,224 @@
-package io.shantek.helpers;
+package io.shantek.commands;
 
 import io.shantek.SlotShop;
+import io.shantek.helpers.ConfigData;
+import io.shantek.helpers.Functions;
+import io.shantek.helpers.PurchaseHistory;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Commands implements CommandExecutor {
+    private final SlotShop plugin;
 
-    public SlotShop slotShop;
-
-    public Commands(SlotShop slotShop) {
-        this.slotShop = slotShop;
+    public Commands(SlotShop plugin) {
+        this.plugin = plugin;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("slotshop")) {
-            if (args.length == 0 || args.length == 1 && args[0].isEmpty()) {
-                List<String> matchingSubcommands = new ArrayList();
-                if (sender.hasPermission("slotshop.create")) {
-                    matchingSubcommands.add(ChatColor.GREEN + "create");
-                }
-
-                if (sender.hasPermission("slotshop.create.gamblebarrel")) {
-                    matchingSubcommands.add(ChatColor.GREEN + "creategamble");
-                }
-
-                if (sender.hasPermission("slotshop.command.purgegamble") || sender.isOp()) {
-                    matchingSubcommands.add(ChatColor.GREEN + "purgegamble");
-                }
-
-                matchingSubcommands.add(ChatColor.GREEN + "history");
-                matchingSubcommands.add(ChatColor.GREEN + "clear");
-                matchingSubcommands.add(ChatColor.GREEN + "addcoowner");
-                matchingSubcommands.add(ChatColor.GREEN + "removecoowner");
-                if (sender.hasPermission("slotshop.purgesales") || sender.isOp()) {
-                    matchingSubcommands.add(ChatColor.GREEN + "purgesales");
-                }
-
-                sender.sendMessage(ChatColor.YELLOW + "Available subcommands:");
-                Iterator var18 = matchingSubcommands.iterator();
-
-                while(var18.hasNext()) {
-                    String subcommand = (String)var18.next();
-                    sender.sendMessage(subcommand);
-                }
-
+            if (args.length == 0 || (args.length == 1 && args[0].isEmpty())) {
+                sendAvailableSubcommands(sender);
                 return true;
             }
 
-            if (args[0].equalsIgnoreCase("purgegamble")) {
-                if (!sender.hasPermission("slotshop.command.purgegamble") && !sender.isOp()) {
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to use this command.");
-                } else {
-                    this.purgeGambleTimes();
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.YELLOW + "Gamble times purged for all players.");
-                }
-
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("create")) {
-                if (sender.hasPermission("slotshop.create")) {
-                    this.createSlotShop(sender, false);
-                } else {
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to create a Slot Shop.");
-                }
-
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("creategamble")) {
-                if (sender.hasPermission("slotshop.create.gamblebarrel")) {
-                    this.createSlotShop(sender, true);
-                } else {
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to create a Gamble Slot Shop.");
-                }
-
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("history")) {
-                this.displayPurchaseHistory(sender, args);
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("clear")) {
-                this.clearPurchaseHistory(sender);
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("purgesales")) {
-                if (!sender.hasPermission("slotshop.purgesales") && !sender.isOp()) {
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.RED + " You don't have permission to run this command.");
-                } else {
-                    String days = "30";
-                    if (args.length > 1) {
-                        days = args[1];
-                    }
-
-                    this.clearOldRecords(days);
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.YELLOW + " Old records cleared successfully.");
-                }
-
-                return true;
-            }
-
-            Player player;
-            Block targetBlock;
-            Sign sign;
-            String ownerName;
-            if (args[0].equalsIgnoreCase("addcoowner")) {
-                if (!(sender instanceof Player)) {
-                    sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "This command can only be executed by a player.");
+            switch (args[0].toLowerCase()) {
+                case "purgegamble":
+                    handlePurgeGamble(sender);
                     return true;
-                }
-
-                player = (Player)sender;
-                targetBlock = player.getTargetBlock((Set)null, 5);
-                if (targetBlock.getState() instanceof Sign) {
-                    sign = (Sign)targetBlock.getState();
-                    ownerName = sign.getLine(0);
-                    Block attachedBlock = targetBlock.getRelative(this.getAttachedFace(targetBlock));
-                    if (!(attachedBlock.getState() instanceof Barrel)) {
-                        player.sendMessage(ChatColor.RED + "This sign is not associated with a valid shop.");
-                        return true;
-                    }
-
-                    Barrel barrel = (Barrel)attachedBlock.getState();
-                    String barrelCustomName = barrel.getCustomName();
-                    if (barrelCustomName == null || !barrelCustomName.equals(this.customBarrelName) && !barrelCustomName.equals(this.gambleBarrelName)) {
-                        player.sendMessage(ChatColor.RED + "This sign is not associated with a valid shop.");
-                        return true;
-                    }
-
-                    if (ownerName.equals(player.getName())) {
-                        if (args.length < 2) {
-                            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Usage: /slotshop addcoowner <coowner>");
-                            return true;
-                        }
-
-                        String coOwnerName = args[1];
-                        if (coOwnerName.equalsIgnoreCase(player.getName())) {
-                            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You cannot add yourself as a co-owner.");
-                            return true;
-                        }
-
-                        OfflinePlayer coOwner = Bukkit.getOfflinePlayer(coOwnerName);
-                        if (coOwner.hasPlayedBefore()) {
-                            Location signLocation = targetBlock.getLocation();
-                            SlotShop.ShopData shopData = (SlotShop.ShopData)this.shopDataMap.get(signLocation);
-                            if (shopData == null) {
-                                shopData = new SlotShop.ShopData(coOwnerName);
-                                this.shopDataMap.put(signLocation, shopData);
-                            } else {
-                                shopData.setCoOwner(coOwnerName);
-                            }
-
-                            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.GREEN + "Co-owner added to the shop.");
-                            this.saveShopData();
-                            return true;
-                        }
-
-                        player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Invalid player name.");
-                        return true;
-                    }
-
-                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be the owner of the shop to add a co-owner.");
+                case "create":
+                    handleCreate(sender, false);
                     return true;
-                }
-
-                player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be looking at a sign to add a co-owner.");
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("removecoowner")) {
-                if (sender instanceof Player) {
-                    player = (Player)sender;
-                    targetBlock = player.getTargetBlock((Set)null, 5);
-                    if (targetBlock.getState() instanceof Sign) {
-                        sign = (Sign)targetBlock.getState();
-                        ownerName = sign.getLine(0);
-                        if (ownerName.equals(player.getName())) {
-                            Location signLocation = targetBlock.getLocation();
-                            if (this.shopDataMap.containsKey(signLocation)) {
-                                SlotShop.ShopData shopData = (SlotShop.ShopData)this.shopDataMap.get(signLocation);
-                                shopData.setCoOwner((String)null);
-                                player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.GREEN + "Co-owner removed from the shop.");
-                                this.saveShopData();
-                                return true;
-                            }
-
-                            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "This sign is not associated with a shop.");
-                            return true;
-                        }
-
-                        player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be the owner of the shop to remove a co-owner.");
-                        return true;
-                    }
-
-                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be looking at a sign to remove a co-owner.");
+                case "creategamble":
+                    handleCreate(sender, true);
                     return true;
-                }
-
-                sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "This command can only be executed by a player.");
-                return true;
+                case "history":
+                    PurchaseHistory.displayPurchaseHistory(sender, args, plugin);
+                    return true;
+                case "clear":
+                    PurchaseHistory.clearPurchaseHistory(sender, plugin);
+                    return true;
+                case "purgesales":
+                    handlePurgeSales(sender, args);
+                    return true;
+                case "addcoowner":
+                    handleAddCoOwner(sender, args);
+                    return true;
+                case "removecoowner":
+                    handleRemoveCoOwner(sender);
+                    return true;
+                default:
+                    sender.sendMessage(ChatColor.RED + "Unknown subcommand. Type /slotshop for a list of commands.");
+                    return true;
             }
         }
-
         return false;
     }
 
+    private void sendAvailableSubcommands(CommandSender sender) {
+        List<String> matchingSubcommands = new ArrayList<>();
+        if (sender.hasPermission("slotshop.create")) {
+            matchingSubcommands.add(ChatColor.GREEN + "create");
+        }
+        if (sender.hasPermission("slotshop.create.gamblebarrel")) {
+            matchingSubcommands.add(ChatColor.GREEN + "creategamble");
+        }
+        if (sender.hasPermission("slotshop.command.purgegamble") || sender.isOp()) {
+            matchingSubcommands.add(ChatColor.GREEN + "purgegamble");
+        }
+        matchingSubcommands.add(ChatColor.GREEN + "history");
+        matchingSubcommands.add(ChatColor.GREEN + "clear");
+        matchingSubcommands.add(ChatColor.GREEN + "addcoowner");
+        matchingSubcommands.add(ChatColor.GREEN + "removecoowner");
+        if (sender.hasPermission("slotshop.purgesales") || sender.isOp()) {
+            matchingSubcommands.add(ChatColor.GREEN + "purgesales");
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Available subcommands:");
+        for (String subcommand : matchingSubcommands) {
+            sender.sendMessage(subcommand);
+        }
+    }
+
+    private void handlePurgeGamble(CommandSender sender) {
+        if (!sender.hasPermission("slotshop.command.purgegamble") && !sender.isOp()) {
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to use this command.");
+        } else {
+            Functions.purgeGambleTimes();
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.YELLOW + "Gamble times purged for all players.");
+        }
+    }
+
+    private void handleCreate(CommandSender sender, boolean isGamble) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "This command can only be executed by a player.");
+            return;
+        }
+
+        Player player = (Player) sender;
+        Block targetBlock = player.getTargetBlockExact(5);
+        if (targetBlock != null && targetBlock.getState() instanceof Barrel) {
+            Barrel barrel = (Barrel) targetBlock.getState();
+            if (Functions.hasAttachedSign(targetBlock)) {
+                player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Please remove the signs off the barrel first.");
+            } else {
+                String customName = isGamble ? Functions.gambleBarrelName : Functions.customBarrelName;
+                barrel.setCustomName(customName);
+                barrel.update();
+                player.sendMessage(ChatColor.GREEN + "Slot Shop " + (isGamble ? "Gamble " : "") + "created successfully.");
+            }
+        } else {
+            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Barrel not found.");
+        }
+    }
+
+    private void handlePurgeSales(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("slotshop.purgesales") && !sender.isOp()) {
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.RED + " You don't have permission to run this command.");
+        } else {
+            String days = args.length > 1 ? args[1] : "30";
+            Functions.clearOldRecords(days, plugin);
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.YELLOW + " Old records cleared successfully.");
+        }
+    }
+
+    private void handleAddCoOwner(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "This command can only be executed by a player.");
+            return;
+        }
+
+        Player player = (Player) sender;
+        Block targetBlock = player.getTargetBlock((Set) null, 5);
+        if (targetBlock.getState() instanceof Sign) {
+            Sign sign = (Sign) targetBlock.getState();
+            String ownerName = sign.getLine(0);
+            Block attachedBlock = targetBlock.getRelative(Functions.getAttachedFace(targetBlock));
+            if (!(attachedBlock.getState() instanceof Barrel)) {
+                player.sendMessage(ChatColor.RED + "This sign is not associated with a valid shop.");
+                return;
+            }
+
+            Barrel barrel = (Barrel) attachedBlock.getState();
+            String barrelCustomName = barrel.getCustomName();
+            if (barrelCustomName == null || (!barrelCustomName.equals(Functions.customBarrelName) && !barrelCustomName.equals(Functions.gambleBarrelName))) {
+                player.sendMessage(ChatColor.RED + "This sign is not associated with a valid shop.");
+                return;
+            }
+
+            if (ownerName.equals(player.getName())) {
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Usage: /slotshop addcoowner <coowner>");
+                    return;
+                }
+
+                String coOwnerName = args[1];
+                if (coOwnerName.equalsIgnoreCase(player.getName())) {
+                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You cannot add yourself as a co-owner.");
+                    return;
+                }
+
+                OfflinePlayer coOwner = Bukkit.getOfflinePlayer(coOwnerName);
+                if (coOwner.hasPlayedBefore()) {
+                    Location signLocation = targetBlock.getLocation();
+                    Functions.addCoOwner(signLocation, coOwnerName, plugin);
+                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.GREEN + "Co-owner added to the shop.");
+                    ConfigData.saveShopData(plugin);
+                    return;
+                }
+
+                player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Invalid player name.");
+                return;
+            }
+
+            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be the owner of the shop to add a co-owner.");
+            return;
+        }
+
+        player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be looking at a sign to add a co-owner.");
+    }
+
+    private void handleRemoveCoOwner(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "This command can only be executed by a player.");
+            return;
+        }
+
+        Player player = (Player) sender;
+        Block targetBlock = player.getTargetBlock((Set) null, 5);
+        if (targetBlock.getState() instanceof Sign) {
+            Sign sign = (Sign) targetBlock.getState();
+            String ownerName = sign.getLine(0);
+            if (ownerName.equals(player.getName())) {
+                Location signLocation = targetBlock.getLocation();
+                if (Functions.removeCoOwner(signLocation, plugin)) {
+                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.GREEN + "Co-owner removed from the shop.");
+                    ConfigData.saveShopData(plugin);
+                    return;
+                }
+
+                player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "This sign is not associated with a shop.");
+                return;
+            }
+
+            player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be the owner of the shop to remove a co-owner.");
+            return;
+        }
+
+        player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You must be looking at a sign to remove a co-owner.");
+    }
 }
