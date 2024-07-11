@@ -1,4 +1,4 @@
-package io.shantek.Listeners;
+package io.shantek.listeners;
 
 import io.shantek.SlotShop;
 import org.bukkit.ChatColor;
@@ -10,6 +10,12 @@ import java.util.List;
 import java.util.UUID;
 
 public class PlayerJoin {
+
+    public SlotShop slotShop;
+
+    public PlayerJoin(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {

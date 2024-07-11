@@ -1,4 +1,4 @@
-package io.shantek.Helpers;
+package io.shantek.helpers;
 
 import io.shantek.SlotShop;
 import org.bukkit.Bukkit;
@@ -14,6 +14,12 @@ import java.util.Iterator;
 
 public class ConfigData {
 
+    public SlotShop slotShop;
+
+    public ConfigData(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
+
     private void loadConfiguration() {
         this.getConfig().options().copyDefaults(true);
         this.saveDefaultConfig();
@@ -21,9 +27,9 @@ public class ConfigData {
     }
 
     public void saveShopData() {
-        File file = new File(this.getDataFolder(), "shopdata.yml");
+        File file = new File(slotShop.getDataFolder(), "shopdata.yml");
         YamlConfiguration config = new YamlConfiguration();
-        if (this.shopDataMap.isEmpty()) {
+        if (slotShop.shopDataMap.isEmpty()) {
             this.getLogger().info("No shop data found. Skipping save operation.");
         } else {
             Iterator var3 = this.shopDataMap.keySet().iterator();

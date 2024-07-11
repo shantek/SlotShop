@@ -1,4 +1,4 @@
-package io.shantek.Helpers;
+package io.shantek.helpers;
 
 import io.shantek.SlotShop;
 import org.bukkit.Bukkit;
@@ -15,6 +15,12 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class PurchaseHistory {
+
+    public SlotShop slotShop;
+
+    public PurchaseHistory(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     private void addPurchaseToHistory(String buyerName, String sellerName, String coOwnerName, double cost, ItemStack item) {
         OfflinePlayer offlineSeller = Bukkit.getOfflinePlayer(sellerName);

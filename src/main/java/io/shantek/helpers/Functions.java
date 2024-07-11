@@ -1,4 +1,4 @@
-package io.shantek.Helpers;
+package io.shantek.helpers;
 
 import io.shantek.SlotShop;
 import net.milkbowl.vault.economy.Economy;
@@ -24,6 +24,12 @@ import java.io.File;
 import java.util.*;
 
 public class Functions {
+
+    public SlotShop slotShop;
+
+    public Functions(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     private void clearOldRecords(String days) {
         int daysToKeep;
@@ -121,7 +127,7 @@ public class Functions {
     }
 
     private void purgeGambleTimes() {
-        this.purchaseCooldowns.clear();
+        slotShop.purchaseCooldowns.clear();
     }
 
     private String formatRemainingCooldown(long remainingTime) {

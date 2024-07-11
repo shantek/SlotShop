@@ -1,5 +1,6 @@
-package io.shantek.Listeners;
+package io.shantek.listeners;
 
+import io.shantek.SlotShop;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -8,6 +9,12 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 
 public class InventoryClose {
+
+    public SlotShop slotShop;
+
+    public InventoryClose(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {

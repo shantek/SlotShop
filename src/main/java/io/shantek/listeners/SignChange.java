@@ -1,5 +1,6 @@
-package io.shantek.Listeners;
+package io.shantek.listeners;
 
+import io.shantek.SlotShop;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,6 +15,12 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 
 public class SignChange {
+
+    public SlotShop slotShop;
+
+    public SignChange(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     @EventHandler
     public void onSignChange(SignChangeEvent event) {

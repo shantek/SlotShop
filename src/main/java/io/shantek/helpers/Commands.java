@@ -1,4 +1,4 @@
-package io.shantek.Helpers;
+package io.shantek.helpers;
 
 import io.shantek.SlotShop;
 import org.bukkit.Bukkit;
@@ -9,6 +9,7 @@ import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -17,8 +18,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public class Commands {
+public class Commands implements CommandExecutor {
 
+    public SlotShop slotShop;
+
+    public Commands(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
+
+    @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("slotshop")) {
             if (args.length == 0 || args.length == 1 && args[0].isEmpty()) {

@@ -6,56 +6,25 @@
 package io.shantek;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import io.shantek.helpers.PurchaseHistory;
 import net.milkbowl.vault.economy.Economy;
-import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
-import org.bukkit.block.Barrel;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Sign;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SlotShop extends JavaPlugin implements Listener, TabCompleter {
+
+    public PurchaseHistory purchaseHistory;
+
     private static final int PAGE_SIZE = 10;
     private Economy econ = null;
     private String customBarrelName = "SlotShop";
@@ -64,10 +33,12 @@ public class SlotShop extends JavaPlugin implements Listener, TabCompleter {
     private final Map<UUID, Long> purchaseCooldowns = new HashMap();
     private Map<UUID, Long> purchaseCooldownSlotShop = new HashMap();
     private static final long COOLDOWN_DURATION = 250L;
-    private final Map<UUID, List<Purchase>> purchaseHistory = new ConcurrentHashMap();
-    private Map<Location, ShopData> shopDataMap = new HashMap();
+    private final Map<UUID, List<Purchase>> transactionHistory = new ConcurrentHashMap();
+    public Map<Location, ShopData> shopDataMap = new HashMap();
     private FileConfiguration dataConfig;
     private File dataFile;
+
+
 
     public SlotShop() {
     }
@@ -77,14 +48,14 @@ public class SlotShop extends JavaPlugin implements Listener, TabCompleter {
             this.getLogger().severe("Disabled due to no Vault dependency found!");
             this.getServer().getPluginManager().disablePlugin(this);
         } else {
-            this.loadConfiguration();
+            config.loadConfiguration();
             this.loadPurchaseHistory();
             this.getServer().getPluginManager().registerEvents(this, this);
             this.getCommand("slotshop").setExecutor(this);
             this.getCommand("slotshop").setTabCompleter(this);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                this.savePurchaseHistory();
-                this.saveShopData();
+                purchaseHistory.savePurchaseHistory();
+                purchaseHistory.saveShopData();
             }));
             this.loadShopData();
         }

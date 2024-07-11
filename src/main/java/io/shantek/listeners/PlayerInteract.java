@@ -1,4 +1,4 @@
-package io.shantek.Listeners;
+package io.shantek.listeners;
 
 import io.shantek.SlotShop;
 import org.bukkit.Bukkit;
@@ -15,6 +15,12 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class PlayerInteract {
+
+    public SlotShop slotShop;
+
+    public PlayerInteract(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {

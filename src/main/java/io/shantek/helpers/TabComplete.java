@@ -1,5 +1,6 @@
-package io.shantek.Helpers;
+package io.shantek.helpers;
 
+import io.shantek.SlotShop;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
@@ -9,6 +10,12 @@ import java.util.Iterator;
 import java.util.List;
 
 public class TabComplete {
+
+    public SlotShop slotShop;
+
+    public TabComplete(SlotShop slotShop) {
+        this.slotShop = slotShop;
+    }
 
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
         if (cmd.getName().equalsIgnoreCase("slotshop") && args.length == 1) {
