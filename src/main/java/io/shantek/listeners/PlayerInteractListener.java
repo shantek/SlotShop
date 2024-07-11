@@ -213,6 +213,7 @@ public class PlayerInteractListener implements Listener {
         ChosenItem chosenItem = Functions.getRandomItem(inventory);
         if (chosenItem == null) {
             player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Shop is out of stock!");
+            notifyOwnerOutOfStock(player, ownerName, sign.getLine(1));
             return;
         }
 
@@ -220,6 +221,7 @@ public class PlayerInteractListener implements Listener {
         int availableQuantity = Functions.getQuantityInInventory(inventory, chosenItem.getItem());
         if (availableQuantity < purchasedItem.getAmount()) {
             player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Shop is out of stock!");
+            notifyOwnerOutOfStock(player, ownerName, sign.getLine(1));
             return;
         }
 
@@ -245,6 +247,13 @@ public class PlayerInteractListener implements Listener {
         notifyOwnerAndCoOwner(player, ownerName, purchasedItem, formattedName, ownerPayment, coOwnerPayment, shopCoowner);
 
         Functions.updateStockLine(barrel, sign.getBlock());
+    }
+
+    private void notifyOwnerOutOfStock(Player buyer, String ownerName, String itemDescription) {
+        Player owner = Bukkit.getPlayer(ownerName);
+        if (owner != null) {
+            owner.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + buyer.getName() + " is trying to buy from the " + itemDescription + " shop, but it's out of stock.");
+        }
     }
 
     private void notifyOwnerAndCoOwner(Player player, String ownerName, ItemStack purchasedItem, String formattedName, double ownerPayment, double coOwnerPayment, String shopCoowner) {
