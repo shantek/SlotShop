@@ -1,13 +1,13 @@
 package io.shantek;
 
-import io.shantek.commands.Commands;
+import io.shantek.helpers.Commands;
 import io.shantek.helpers.ConfigData;
 import io.shantek.helpers.PurchaseHistory;
 import io.shantek.listeners.InventoryCloseListener;
 import io.shantek.listeners.PlayerInteractListener;
 import io.shantek.listeners.PlayerJoinListener;
 import io.shantek.listeners.SignChangeListener;
-import io.shantek.tabcomplete.TabComplete;
+import io.shantek.helpers.TabComplete;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
