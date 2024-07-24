@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -107,7 +108,9 @@ public class Commands implements CommandExecutor {
         Block targetBlock = player.getTargetBlockExact(5);
         if (targetBlock != null && targetBlock.getState() instanceof Barrel) {
             Barrel barrel = (Barrel) targetBlock.getState();
-            if (Functions.hasAttachedSign(targetBlock)) {
+
+            // Function to check if the target block has an attached sign
+            if (hasAttachedSign(targetBlock)) {
                 player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Please remove the signs off the barrel first.");
             } else {
                 String customName = isGamble ? Functions.gambleBarrelName : Functions.customBarrelName;
@@ -118,6 +121,26 @@ public class Commands implements CommandExecutor {
         } else {
             player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Barrel not found.");
         }
+    }
+
+    public boolean hasAttachedSign(Block block) {
+        BlockFace[] faces = { BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP };
+        for (BlockFace face : faces) {
+            Block relative = block.getRelative(face);
+            if (relative.getState() instanceof Sign) {
+                Sign sign = (Sign) relative.getState();
+                // Check if the sign is attached to the current block
+                if (isSignAttached(sign, block)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isSignAttached(Sign sign, Block block) {
+        Block attachedBlock = sign.getBlock().getRelative(((org.bukkit.material.Sign) sign.getData()).getAttachedFace());
+        return attachedBlock.equals(block);
     }
 
     private void handlePurgeSales(CommandSender sender, String[] args) {
