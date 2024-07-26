@@ -86,6 +86,16 @@ public class PlayerInteractListener implements Listener {
 
                 boolean isOwnerOrCoOwner = isOwnerOrCoOwner(player, ownerName, signLocation);
 
+                if (barrelCustomName.equals(Functions.gambleBarrelName)) {
+                    if (!Functions.canPurchaseGambleShop(player)) {
+                        long remainingTime = Functions.getRemainingGambleCooldown(player);
+                        String formattedTime = Functions.formatRemainingCooldown(remainingTime);
+                        player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You can't purchase for " + formattedTime);
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+
                 if (isOwnerOrCoOwner) {
                     if (isOwner(player, ownerName)) {
                         // Allow owners to edit or destroy the sign
@@ -115,24 +125,6 @@ public class PlayerInteractListener implements Listener {
                 }
             }
         }
-    }
-
-    private boolean isOwnerOrCoOwner(Player player, String ownerName, Location signLocation) {
-        String playerName = player.getName();
-        boolean hasCoowner = false;
-        String shopCoowner = null;
-        if (Functions.getShopDataMap().containsKey(signLocation)) {
-            Functions.ShopData shopData = Functions.getShopDataMap().get(signLocation);
-            if (shopData != null) {
-                shopCoowner = shopData.getCoOwner();
-                hasCoowner = true;
-            }
-        }
-        return playerName.equals(ownerName) || (hasCoowner && playerName.equals(shopCoowner));
-    }
-
-    private boolean isOwner(Player player, String ownerName) {
-        return player.getName().equals(ownerName);
     }
 
     private void handlePurchaseProcess(Player player, Barrel barrel, Sign sign, String ownerName, Location signLocation, PlayerInteractEvent event) {
@@ -168,18 +160,41 @@ public class PlayerInteractListener implements Listener {
             event.setCancelled(true);
         } else {
             Functions.setSlotshopCooldown(player);
-            if (barrel.getCustomName().equals(Functions.gambleBarrelName) && !Functions.canPurchase(player)) {
-                long remainingTime = Functions.getRemainingCooldown(player);
-                String formattedTime = Functions.formatRemainingCooldown(remainingTime);
-                player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Wait " + formattedTime + " to use a Gamble Shop again.");
-                event.setCancelled(true);
+            if (barrel.getCustomName().equals(Functions.gambleBarrelName)) {
+                if (!Functions.canPurchase(player)) {
+                    long remainingTime = Functions.getRemainingCooldown(player);
+                    String formattedTime = Functions.formatRemainingCooldown(remainingTime);
+                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Wait " + formattedTime + " to use a Gamble Shop again.");
+                    event.setCancelled(true);
+                } else {
+                    Functions.updateGamblePurchaseTime(player); // Update purchase time for gamble shop
+                    processPurchase(player, barrel, sign, ownerName, shopCoowner, cost);
+                }
             } else {
                 processPurchase(player, barrel, sign, ownerName, shopCoowner, cost);
             }
         }
     }
 
-    private void sendShopInfo(Player player, String ownerName, String barrelCustomName, Location signLocation) {
+    private boolean isOwnerOrCoOwner(Player player, String ownerName, Location signLocation) {
+        String playerName = player.getName();
+        boolean hasCoowner = false;
+        String shopCoowner = null;
+        if (Functions.getShopDataMap().containsKey(signLocation)) {
+            Functions.ShopData shopData = Functions.getShopDataMap().get(signLocation);
+            if (shopData != null) {
+                shopCoowner = shopData.getCoOwner();
+                hasCoowner = true;
+            }
+        }
+        return playerName.equals(ownerName) || (hasCoowner && playerName.equals(shopCoowner));
+    }
+
+    private boolean isOwner(Player player, String ownerName) {
+        return player.getName().equals(ownerName);
+    }
+
+   private void sendShopInfo(Player player, String ownerName, String barrelCustomName, Location signLocation) {
         boolean hasCoowner = false;
         String shopCoowner = null;
         if (Functions.getShopDataMap().containsKey(signLocation)) {

@@ -66,20 +66,20 @@ public class Commands implements CommandExecutor {
 
     private void sendAvailableSubcommands(CommandSender sender) {
         List<String> matchingSubcommands = new ArrayList<>();
-        if (sender.hasPermission("slotshop.create")) {
+        if (sender.hasPermission("shantek.slotshop.create")) {
             matchingSubcommands.add(ChatColor.GREEN + "create");
         }
-        if (sender.hasPermission("slotshop.create.gamblebarrel")) {
+        if (sender.hasPermission("shantek.slotshop.create.gamblebarrel")) {
             matchingSubcommands.add(ChatColor.GREEN + "creategamble");
         }
-        if (sender.hasPermission("slotshop.command.purgegamble") || sender.isOp()) {
+        if (sender.hasPermission("shantek.slotshop.command.purgegamble") || sender.isOp()) {
             matchingSubcommands.add(ChatColor.GREEN + "purgegamble");
         }
         matchingSubcommands.add(ChatColor.GREEN + "history");
         matchingSubcommands.add(ChatColor.GREEN + "clear");
         matchingSubcommands.add(ChatColor.GREEN + "addcoowner");
         matchingSubcommands.add(ChatColor.GREEN + "removecoowner");
-        if (sender.hasPermission("slotshop.purgesales") || sender.isOp()) {
+        if (sender.hasPermission("shantek.slotshop.purgesales") || sender.isOp()) {
             matchingSubcommands.add(ChatColor.GREEN + "purgesales");
         }
 
@@ -90,7 +90,7 @@ public class Commands implements CommandExecutor {
     }
 
     private void handlePurgeGamble(CommandSender sender) {
-        if (!sender.hasPermission("slotshop.command.purgegamble") && !sender.isOp()) {
+        if (!sender.hasPermission("shantek.slotshop.command.purgegamble") && !sender.isOp()) {
             sender.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to use this command.");
         } else {
             Functions.purgeGambleTimes();
@@ -104,6 +104,10 @@ public class Commands implements CommandExecutor {
             return;
         }
 
+        if (!sender.hasPermission("shantek.slotshop.create") && !sender.isOp()) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to create a slot shop.");
+            return;
+        }
         Player player = (Player) sender;
         Block targetBlock = player.getTargetBlockExact(5);
         if (targetBlock != null && targetBlock.getState() instanceof Barrel) {
@@ -139,12 +143,18 @@ public class Commands implements CommandExecutor {
     }
 
     private boolean isSignAttached(Sign sign, Block block) {
-        Block attachedBlock = sign.getBlock().getRelative(((org.bukkit.material.Sign) sign.getData()).getAttachedFace());
-        return attachedBlock.equals(block);
+        if (sign.getBlockData() instanceof org.bukkit.block.data.type.WallSign) {
+            org.bukkit.block.data.type.WallSign wallSign = (org.bukkit.block.data.type.WallSign) sign.getBlockData();
+            BlockFace attachedFace = wallSign.getFacing().getOppositeFace();
+            Block attachedBlock = sign.getBlock().getRelative(attachedFace);
+            return attachedBlock.equals(block);
+        }
+        return false;
     }
 
+
     private void handlePurgeSales(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("slotshop.purgesales") && !sender.isOp()) {
+        if (!sender.hasPermission("shantek.slotshop.purgesales") && !sender.isOp()) {
             sender.sendMessage(ChatColor.GREEN + "[SlotShop]" + ChatColor.RED + " You don't have permission to run this command.");
         } else {
             String days = args.length > 1 ? args[1] : "30";

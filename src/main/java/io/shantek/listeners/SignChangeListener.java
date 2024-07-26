@@ -31,10 +31,10 @@ public class SignChangeListener implements Listener {
             Barrel barrel = (Barrel) attachedBlock.getState();
             String barrelCustomName = barrel.getCustomName();
             if (barrelCustomName != null && (barrelCustomName.equals(Functions.customBarrelName) || barrelCustomName.equals(Functions.gambleBarrelName))) {
-                if (barrelCustomName.equals(Functions.gambleBarrelName) && !player.hasPermission("slotshop.create.gamblebarrel")) {
+                if (barrelCustomName.equals(Functions.gambleBarrelName) && !player.hasPermission("shantek.slotshop.create.gamblebarrel")) {
                     player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to set up a Gamble Shop!");
                     signBlock.breakNaturally();
-                } else if (barrelCustomName.equals(Functions.customBarrelName) && !player.hasPermission("slotshop.create")) {
+                } else if (barrelCustomName.equals(Functions.customBarrelName) && !player.hasPermission("shantek.slotshop.create")) {
                     player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You don't have permission to set up a Slot Shop!");
                     signBlock.breakNaturally();
                 } else {

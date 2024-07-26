@@ -14,12 +14,44 @@ import java.util.*;
 public class Functions {
     public static final String customBarrelName = "SlotShop";
     public static final String gambleBarrelName = "GambleShop";
-    private static final Map<UUID, Long> purchaseCooldowns = new HashMap<>();
+    private static final Map<UUID, Long> purchaseCooldowns = ConfigData.getPlayerLastPurchaseTimes(); // Ensure it uses the persistent map
     private static final Map<UUID, Long> purchaseCooldownSlotShop = new HashMap<>();
     private static final Map<Location, ShopData> shopDataMap = new HashMap<>();
 
+    public static boolean canPurchaseGambleShop(Player player) {
+        long currentTime = System.currentTimeMillis() / 1000L; // Use seconds for consistency
+        long lastPurchaseTime = purchaseCooldowns.getOrDefault(player.getUniqueId(), 0L);
+        long cooldownDuration = ConfigData.getCooldownDuration();
+        return currentTime >= lastPurchaseTime + cooldownDuration;
+    }
+
+    public static long getRemainingGambleCooldown(Player player) {
+        long currentTime = System.currentTimeMillis() / 1000L; // Use seconds for consistency
+        long lastPurchaseTime = purchaseCooldowns.getOrDefault(player.getUniqueId(), 0L);
+        long cooldownDuration = ConfigData.getCooldownDuration();
+        return (lastPurchaseTime + cooldownDuration) - currentTime;
+    }
+
+    public static void updateGamblePurchaseTime(Player player) {
+        long currentTime = System.currentTimeMillis() / 1000L; // Use seconds for consistency
+        purchaseCooldowns.put(player.getUniqueId(), currentTime);
+        ConfigData.savePlayerLastPurchaseTimes(SlotShop.getInstance());
+    }
+
+    public static String formatRemainingCooldown(long remainingTimeSeconds) {
+        long days = remainingTimeSeconds / (24 * 3600);
+        remainingTimeSeconds %= 24 * 3600;
+        long hours = remainingTimeSeconds / 3600;
+        remainingTimeSeconds %= 3600;
+        long minutes = remainingTimeSeconds / 60;
+        long seconds = remainingTimeSeconds % 60;
+
+        return String.format("%dd %dh %dm %ds", days, hours, minutes, seconds);
+    }
+
     public static void purgeGambleTimes() {
         purchaseCooldowns.clear();
+        ConfigData.savePlayerLastPurchaseTimes(SlotShop.getInstance());
     }
 
     public static BlockFace getAttachedFace(Block block) {
@@ -77,6 +109,10 @@ public class Functions {
         return count;
     }
 
+
+
+
+
     public static boolean canPurchase(Player player) {
         long currentTime = System.currentTimeMillis() / 1000L;
         long lastPurchaseTime = purchaseCooldowns.getOrDefault(player.getUniqueId(), 0L);
@@ -90,16 +126,7 @@ public class Functions {
         return Math.max(0L, remainingTime);
     }
 
-    public static String formatRemainingCooldown(long remainingTime) {
-        long days = remainingTime / (24 * 3600);
-        remainingTime %= 24 * 3600;
-        long hours = remainingTime / 3600;
-        remainingTime %= 3600;
-        long minutes = remainingTime / 60;
-        long seconds = remainingTime % 60;
 
-        return String.format("%dd %dh %dm %ds", days, hours, minutes, seconds);
-    }
 
     public static long setPurchaseCooldown(Player player) {
         long currentTime = System.currentTimeMillis() / 1000L;
