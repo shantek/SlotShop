@@ -95,7 +95,7 @@ public class Functions {
     public static void updateStockLine(Barrel barrel, Block signBlock) {
         int stockCount = countNonNullSlots(barrel.getInventory().getContents());
         Sign sign = (Sign) signBlock.getState();
-        sign.setLine(3, ChatColor.DARK_GRAY + "Stock: " + stockCount);
+        sign.setLine(3, ChatColor.WHITE + "Stock: " + stockCount);
         sign.update();
     }
 

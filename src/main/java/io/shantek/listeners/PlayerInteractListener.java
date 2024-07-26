@@ -6,6 +6,7 @@ import io.shantek.helpers.Functions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -103,14 +104,24 @@ public class PlayerInteractListener implements Listener {
                             // Allow sign destruction
                             return;
                         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                            player.sendMessage(ChatColor.RED + "Break the sign to recreate the shop");
-                            event.setCancelled(true);
+                            ItemStack itemInHand = player.getInventory().getItemInMainHand();
+                            Material itemType = itemInHand.getType();
+                            String itemName = itemType.toString();
+
+                            if (itemName.equals("GLOW_INK_SAC") || itemName.endsWith("_DYE")) {
+                                // Allow using dye or glow ink on the sign
+                                return;
+                            } else {
+                                player.sendMessage(ChatColor.RED + "Break the sign to recreate the shop");
+                                event.setCancelled(true);
+                            }
                         }
-                    } else {
+                    }
+                    else {
                         player.sendMessage(ChatColor.RED + "Only the shop owner can edit the sign.");
                         event.setCancelled(true);
                     }
-                } else if (player.isOp()) {
+                } else if (player.isOp()  && player.isSneaking()) {
                     // Allow ops to destroy the sign
                     if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
                         return;
