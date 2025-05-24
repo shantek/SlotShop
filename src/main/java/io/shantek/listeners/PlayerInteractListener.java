@@ -62,6 +62,9 @@ public class PlayerInteractListener implements Listener {
                         // Allow opening the barrel without prompts if not holding a stick
                         return;
                     }
+                } else if (player.hasPermission("shantek.slotshop.mod") && player.getInventory().getItemInMainHand().getType() == Material.PAPER) {
+                    // Allow them to open the barrel
+                    return;
                 } else {
                     // Provide shop info for non-owners
                     sendShopInfo(player, ownerName, barrelCustomName, signLocation);
@@ -172,18 +175,17 @@ public class PlayerInteractListener implements Listener {
         } else {
             Functions.setSlotshopCooldown(player);
             if (barrel.getCustomName().equals(Functions.gambleBarrelName)) {
-                if (!Functions.canPurchase(player)) {
-                    long remainingTime = Functions.getRemainingCooldown(player);
+                if (!Functions.canPurchaseGambleShop(player)) {
+                    long remainingTime = Functions.getRemainingGambleCooldown(player);
                     String formattedTime = Functions.formatRemainingCooldown(remainingTime);
-                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "Wait " + formattedTime + " to use a Gamble Shop again.");
+                    player.sendMessage(ChatColor.GREEN + "[SlotShop] " + ChatColor.RED + "You can't purchase for " + formattedTime);
                     event.setCancelled(true);
+                    return;
                 } else {
-                    Functions.updateGamblePurchaseTime(player); // Update purchase time for gamble shop
-                    processPurchase(player, barrel, sign, ownerName, shopCoowner, cost);
+                    Functions.updateGamblePurchaseTime(player); // Set the proper cooldown
                 }
-            } else {
-                processPurchase(player, barrel, sign, ownerName, shopCoowner, cost);
             }
+            processPurchase(player, barrel, sign, ownerName, shopCoowner, cost);
         }
     }
 
