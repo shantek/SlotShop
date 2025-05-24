@@ -78,3 +78,32 @@ jobs:
           files: ./target/SlotShop-build-${{ env.BUILD_NUMBER }}.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Notify Discord
+        if: env.RELEASE_EXISTS == 'false'
+        run: |
+          JSON_PAYLOAD=$(jq -n \
+            --arg title "SlotShop - Release #${{ env.BUILD_NUMBER }}" \
+            --arg desc "${{ env.CHANGELOG }}" \
+            --arg url "https://github.com/${{ github.repository }}/releases/tag/build-${{ env.BUILD_NUMBER }}" \
+            --arg download "https://github.com/${{ github.repository }}/releases/download/build-${{ env.BUILD_NUMBER }}/SlotShop-build-${{ env.BUILD_NUMBER }}.jar" \
+            '{
+              "embeds": [{
+                "title": $title,
+                "url": $url,
+                "description": $desc,
+                "color": 7506394,
+                "fields": [
+                  {
+                    "name": "Download",
+                    "value": "[Click here](" + $download + ")"
+                  }
+                ],
+                "footer": { "text": "Shantek • GitHub Release" },
+                "timestamp": now | todate
+              }]
+            }')
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$JSON_PAYLOAD" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
