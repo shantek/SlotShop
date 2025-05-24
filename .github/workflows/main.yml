@@ -83,7 +83,7 @@ jobs:
           BUILD_NUMBER=${{ env.BUILD_NUMBER }}
           FILENAME="SlotShop-build-${BUILD_NUMBER}.jar"
           JSON_PAYLOAD=$(jq -n \
-            --arg title "UltimateBingo - Release #$BUILD_NUMBER" \
+            --arg title "SlotShop - Release #$BUILD_NUMBER" \
             --arg desc "${{ env.CHANGELOG }}" \
             --arg url "https://github.com/${{ github.repository }}/releases/tag/build-${BUILD_NUMBER}" \
             --arg download "https://github.com/${{ github.repository }}/releases/download/build-${BUILD_NUMBER}/$FILENAME" \
@@ -104,7 +104,6 @@ jobs:
                     "value": "[View All Releases](https://www.github.com/shantek/SlotShop/releases)"
                   }
                 ],
-                "thumbnail": { "url": $thumb },
                 "footer": { "text": "Shantek • GitHub Release" },
                 "timestamp": (now | todate)
               }]
