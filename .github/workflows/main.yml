@@ -95,11 +95,11 @@ jobs:
                 "fields": [
                   {
                     "name": "Download",
-                    "value": "[Click here](" + $download + ")"
+                    "value": "[Click here](\($download))"
                   }
                 ],
                 "footer": { "text": "Shantek • GitHub Release" },
-                "timestamp": now | todate
+                "timestamp": (now | todate)
               }]
             }')
 
