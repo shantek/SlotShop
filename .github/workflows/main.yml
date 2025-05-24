@@ -88,6 +88,7 @@ jobs:
             --arg url "https://github.com/${{ github.repository }}/releases/tag/build-${BUILD_NUMBER}" \
             --arg download "https://github.com/${{ github.repository }}/releases/download/build-${BUILD_NUMBER}/$FILENAME" \
             --arg filename "$FILENAME" \
+            --arg thumb "http://shantek.io/placeholder.jpg" \
             '{
               "embeds": [{
                 "title": $title,
@@ -104,6 +105,7 @@ jobs:
                     "value": "[View All Releases](https://www.github.com/shantek/SlotShop/releases)"
                   }
                 ],
+                "thumbnail": { "url": $thumb },
                 "footer": { "text": "Shantek • GitHub Release" },
                 "timestamp": (now | todate)
               }]
