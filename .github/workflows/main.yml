@@ -47,7 +47,7 @@ jobs:
         run: mvn package -B
 
       - name: Upload Dev Build Artifact
-        uses: actions/upload-artifact@v3.1.3
+        uses: actions/upload-artifact@fbeab3d51361fb5095412815f8326d3ca512adba  # SHA for v3.1.3
         with:
           name: Dev Build - SlotShop-${{ env.VERSION }}
           path: ./target/SlotShop-${{ env.VERSION }}.jar
