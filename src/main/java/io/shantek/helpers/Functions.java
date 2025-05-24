@@ -64,13 +64,18 @@ public class Functions {
 
     public static boolean hasAttachedSign(Block barrelBlock) {
         for (BlockFace face : BlockFace.values()) {
-            Block attachedBlock = barrelBlock.getRelative(face);
-            if (attachedBlock.getState() instanceof Sign) {
-                return true;
+            Block maybeSign = barrelBlock.getRelative(face);
+            if (maybeSign.getState() instanceof Sign) {
+                Sign sign = (Sign) maybeSign.getState();
+                BlockFace attachedFace = getAttachedFace(maybeSign);
+                if (attachedFace != null && maybeSign.getRelative(attachedFace).equals(barrelBlock)) {
+                    return true;
+                }
             }
         }
         return false;
     }
+
 
     public static Block getAttachedBlock(Block block) {
         for (BlockFace face : BlockFace.values()) {
@@ -84,9 +89,12 @@ public class Functions {
 
     public static Block getAttachedSignBlock(Block barrelBlock) {
         for (BlockFace face : BlockFace.values()) {
-            Block attachedBlock = barrelBlock.getRelative(face);
-            if (attachedBlock.getState() instanceof Sign) {
-                return attachedBlock;
+            Block signBlock = barrelBlock.getRelative(face);
+            if (signBlock.getState() instanceof Sign) {
+                BlockFace attachedFace = getAttachedFace(signBlock);
+                if (attachedFace != null && signBlock.getRelative(attachedFace).equals(barrelBlock)) {
+                    return signBlock;
+                }
             }
         }
         return null;
