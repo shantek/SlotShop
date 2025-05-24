@@ -71,7 +71,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: build-${{ env.BUILD_NUMBER }}
-          name: Release #${{ env.BUILD_NUMBER }}
+          name: Release ${{ env.BUILD_NUMBER }}
           body: ${{ env.CHANGELOG }}
           draft: false
           prerelease: false
@@ -79,13 +79,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Notify Discord
-        if: env.RELEASE_EXISTS == 'false'
         run: |
+          BUILD_NUMBER=${{ env.BUILD_NUMBER }}
+          FILENAME="SlotShop-build-${BUILD_NUMBER}.jar"
           JSON_PAYLOAD=$(jq -n \
-            --arg title "SlotShop - Release #${{ env.BUILD_NUMBER }}" \
+            --arg title "UltimateBingo - Release #$BUILD_NUMBER" \
             --arg desc "${{ env.CHANGELOG }}" \
-            --arg url "https://github.com/${{ github.repository }}/releases/tag/build-${{ env.BUILD_NUMBER }}" \
-            --arg download "https://github.com/${{ github.repository }}/releases/download/build-${{ env.BUILD_NUMBER }}/SlotShop-build-${{ env.BUILD_NUMBER }}.jar" \
+            --arg url "https://github.com/${{ github.repository }}/releases/tag/build-${BUILD_NUMBER}" \
+            --arg download "https://github.com/${{ github.repository }}/releases/download/build-${BUILD_NUMBER}/$FILENAME" \
+            --arg filename "$FILENAME" \
             '{
               "embeds": [{
                 "title": $title,
@@ -95,10 +97,14 @@ jobs:
                 "fields": [
                   {
                     "name": "Download",
-                    "value": "[SlotShop-build-\($BUILD_NUMBER).jar](\($download))"
-
+                    "value": "[\($filename)](\($download))"
+                  },
+                  {
+                    "name": "Releases",
+                    "value": "[View All Releases](https://www.github.com/shantek/SlotShop/releases)"
                   }
                 ],
+                "thumbnail": { "url": $thumb },
                 "footer": { "text": "Shantek • GitHub Release" },
                 "timestamp": (now | todate)
               }]
