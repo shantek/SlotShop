@@ -95,7 +95,8 @@ jobs:
                 "fields": [
                   {
                     "name": "Download",
-                    "value": "[Click here](\($download))"
+                    "value": "[SlotShop-build-\($BUILD_NUMBER).jar](\($download))"
+
                   }
                 ],
                 "footer": { "text": "Shantek • GitHub Release" },
