@@ -88,7 +88,7 @@ jobs:
             --arg url "https://github.com/${{ github.repository }}/releases/tag/build-${BUILD_NUMBER}" \
             --arg download "https://github.com/${{ github.repository }}/releases/download/build-${BUILD_NUMBER}/$FILENAME" \
             --arg filename "$FILENAME" \
-            --arg thumb "https://shantek.io/placeholder.jpg" \
+            --arg thumb "https://https://www.shantek.io/placeholder.jpg" \
             '{
               "embeds": [{
                 "title": $title,
