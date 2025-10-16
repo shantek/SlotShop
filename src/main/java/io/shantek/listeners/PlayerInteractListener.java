@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.text.DecimalFormat;
 import java.util.Arrays;
 
 public class PlayerInteractListener implements Listener {
@@ -274,6 +275,22 @@ public class PlayerInteractListener implements Listener {
         notifyOwnerAndCoOwner(player, ownerName, purchasedItem, formattedName, ownerPayment, coOwnerPayment, shopCoowner);
 
         Functions.updateStockLine(barrel, sign.getBlock());
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "shoptransaction " + player.getName() + " purchase " + cost);
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv broadcast #1426867724130324611 **[SlotShop]** " + player.getName() + " purchased " + formattedName + " from " + ownerName + " for $" + formatPrice(cost));
+
+    }
+
+    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0.##"); // removes trailing .0 but keeps .50
+
+    private String formatPrice(double value) {
+        // e.g., 45.0 → "45", 1.5 → "1.50"
+        String formatted = MONEY_FORMAT.format(value);
+        if (!formatted.contains(".")) return formatted; // whole number
+        if (formatted.endsWith(".0")) return formatted.substring(0, formatted.length() - 2);
+        if (formatted.indexOf('.') == formatted.length() - 2) return formatted + "0";
+        return formatted;
     }
 
     private void notifyOwnerOutOfStock(Player buyer, String ownerName, String itemDescription) {
